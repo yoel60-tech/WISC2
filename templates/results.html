@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% block title %}תוצאות — {{ r.child.name }}{% endblock %}
+
+{% block content %}
+
+{# ── errors / warnings ── #}
+{% if r.errors %}
+<div class="alert alert-warning mb-4">
+  <strong>שים לב:</strong> חלק מהנורמות לא נמצאו — ייתכן שטבלאות הנורמות עדיין ריקות.
+  <ul class="mb-0 mt-1">
+    {% for e in r.errors %}<li>{{ e }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if pdf_error %}
+<div class="alert alert-danger">{{ pdf_error }}</div>
+{% endif %}
+
+{# ── child info header ── #}
+<div class="card shadow-sm mb-4 border-0" style="background:#f0f5fa;">
+  <div class="card-body py-3">
+    <div class="row g-2 text-end">
+      <div class="col-md-4">
+        <span class="text-muted">שם:</span>
+        <strong class="me-1">{{ r.child.name or '—' }}</strong>
+      </div>
+      <div class="col-md-4">
+        <span class="text-muted">גיל בבדיקה:</span>
+        <strong class="me-1">{{ r.child.age_str or '—' }}</strong>
+      </div>
+      <div class="col-md-4">
+        <span class="text-muted">תאריך:</span>
+        <strong class="me-1">{{ r.child.exam_date or '—' }}</strong>
+      </div>
+      <div class="col-md-4">
+        <span class="text-muted">בוחן:</span>
+        <strong class="me-1">{{ r.child.examiner or '—' }}</strong>
+      </div>
+      <div class="col-md-4">
+        <span class="text-muted">מסגרת:</span>
+        <strong class="me-1">{{ r.child.school or '—' }}</strong>
+      </div>
+      <div class="col-md-4">
+        <span class="text-muted">כיתה:</span>
+        <strong class="me-1">{{ r.child.grade or '—' }}</strong>
+      </div>
+      {% if r.child.reason %}
+      <div class="col-12">
+        <span class="text-muted">סיבת הפניה:</span>
+        <span class="me-1">{{ r.child.reason }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ── subtest scores ── #}
+<h5 class="fw-bold mb-3" style="color:#2c5f8a;">ציוני מבחנים</h5>
+<div class="table-responsive mb-4">
+<table class="table table-bordered table-sm align-middle wisc-table">
+  <thead>
+    <tr class="text-white text-center" style="background:#2c5f8a;">
+      <th>מבחן</th>
+      <th>ציון גולמי</th>
+      <th>תת-ציונים</th>
+      <th>ציון תקני</th>
+      <th>תיאור</th>
+    </tr>
+  </thead>
+  <tbody>
+    {# core subtests #}
+    {% set core = ['BD','SI','DS','PCn','CD','VC','LN','MR','CO','SS'] %}
+    {% for code in core %}
+      {% set e = r.subtests.get(code) %}
+      {% if e %}
+      <tr>
+        <td class="fw-semibold">{{ e.name }}</td>
+        <td class="text-center">{{ e.raw if e.raw is not none else '—' }}</td>
+        <td class="sub-detail text-muted">
+          {% if e.sub_a is defined and e.sub_a is not none %}
+            <span class="badge bg-light text-dark border me-1">{{ e.label_a }}: {{ e.sub_a }}</span>
+            <span class="badge bg-light text-dark border me-1">{{ e.label_b }}: {{ e.sub_b }}</span>
+            {% set diff = e.sub_diff %}
+            <span class="badge {% if diff|abs >= 5 %}bg-warning text-dark{% else %}bg-light text-dark{% endif %} border">
+              הפרש: {% if diff > 0 %}+{% endif %}{{ diff }}
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-center fw-bold">{{ e.scaled if e.scaled is not none else '—' }}</td>
+        <td class="text-center">
+          {% if e.qualitative is defined %}
+            <span class="badge qual-badge {{ e.qualitative | qual_class }}">{{ e.qualitative }}</span>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+
+    {# separator #}
+    <tr class="table-light">
+      <td colspan="5" class="text-center text-muted small py-1">מבחנים משלימים</td>
+    </tr>
+
+    {% set supp = ['PCm','CA','IN','AR','WR'] %}
+    {% for code in supp %}
+      {% set e = r.subtests.get(code) %}
+      {% if e %}
+      <tr class="table-light">
+        <td class="fw-semibold text-muted">{{ e.name }}</td>
+        <td class="text-center">{{ e.raw if e.raw is not none else '—' }}</td>
+        <td class="sub-detail text-muted">
+          {% if e.sub_a is defined and e.sub_a is not none %}
+            <span class="badge bg-light text-dark border me-1">{{ e.label_a }}: {{ e.sub_a }}</span>
+            <span class="badge bg-light text-dark border me-1">{{ e.label_b }}: {{ e.sub_b }}</span>
+            {% set diff = e.sub_diff %}
+            <span class="badge {% if diff|abs >= 5 %}bg-warning text-dark{% else %}bg-light text-dark{% endif %} border">
+              הפרש: {% if diff > 0 %}+{% endif %}{{ diff }}
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-center fw-bold">{{ e.scaled if e.scaled is not none else '—' }}</td>
+        <td class="text-center">
+          {% if e.qualitative is defined %}
+            <span class="badge qual-badge {{ e.qualitative | qual_class }}">{{ e.qualitative }}</span>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{# ── composite scores ── #}
+<h5 class="fw-bold mb-3" style="color:#2c5f8a;">מדדים מורכבים</h5>
+<div class="table-responsive mb-4">
+<table class="table table-bordered table-sm align-middle wisc-table">
+  <thead>
+    <tr class="text-white text-center" style="background:#2c5f8a;">
+      <th>מדד</th>
+      <th>סכום ציונים תקניים</th>
+      <th>ציון מורכב</th>
+      <th>אחוזון</th>
+      <th>רו"ב 90%</th>
+      <th>רו"ב 95%</th>
+      <th>תיאור</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for idx in ['VCI','PRI','WMI','PSI','FSIQ'] %}
+      {% set c = r.composites.get(idx, {}) %}
+      <tr {% if idx == 'FSIQ' %}class="table-primary fw-bold"{% endif %}>
+        <td class="fw-semibold">{{ c.name or idx }}</td>
+        <td class="text-center">{{ c.sum if c.sum is not none else '—' }}</td>
+        {% if c.score is defined and c.score is not none %}
+          <td class="text-center fw-bold fs-6">{{ c.score }}</td>
+          <td class="text-center">{{ c.percentile or '—' }}</td>
+          <td class="text-center">{{ c.ci90_lo or '—' }}–{{ c.ci90_hi or '—' }}</td>
+          <td class="text-center">{{ c.ci95_lo or '—' }}–{{ c.ci95_hi or '—' }}</td>
+          <td class="text-center">
+            <span class="badge qual-badge {{ c.qualitative | qual_class }}">{{ c.qualitative }}</span>
+          </td>
+        {% else %}
+          <td colspan="5" class="text-center text-muted">{{ c.error or 'נורמות חסרות' }}</td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{# ── discrepancies ── #}
+{% if r.discrepancies %}
+<h5 class="fw-bold mb-3" style="color:#2c5f8a;">הפרשים בין מדדים</h5>
+<div class="table-responsive mb-4">
+<table class="table table-bordered table-sm align-middle wisc-table">
+  <thead>
+    <tr class="text-white text-center" style="background:#5a7fa8;">
+      <th>מדד א׳</th><th>ציון</th>
+      <th>מדד ב׳</th><th>ציון</th>
+      <th>הפרש</th><th>משמעותי?</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in r.discrepancies %}
+    <tr {% if d.significant %}class="table-warning"{% endif %}>
+      <td>{{ d.name_a }}</td>
+      <td class="text-center">{{ d.score_a }}</td>
+      <td>{{ d.name_b }}</td>
+      <td class="text-center">{{ d.score_b }}</td>
+      <td class="text-center fw-bold">{{ d.abs_diff }}</td>
+      <td class="text-center">
+        {% if d.significant %}
+          <span class="badge bg-warning text-dark">כן ✓</span>
+        {% else %}
+          <span class="text-muted">לא</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
+{# ── strengths / weaknesses ── #}
+{% if r.strengths or r.weaknesses %}
+<h5 class="fw-bold mb-3" style="color:#2c5f8a;">חוזקות וחולשות יחסיות</h5>
+<div class="row mb-4">
+  <div class="col-md-6">
+    <div class="card border-success h-100">
+      <div class="card-header bg-success text-white fw-semibold">חוזקות (ציון תקני ≥ 13)</div>
+      <div class="card-body">
+        {% if r.strengths %}
+          {% for s in r.strengths %}
+            <span class="badge bg-success me-1 mb-1 fs-6">{{ s.name }} ({{ s.scaled }})</span>
+          {% endfor %}
+        {% else %}
+          <span class="text-muted">לא נמצאו חוזקות יחסיות</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-danger h-100">
+      <div class="card-header bg-danger text-white fw-semibold">קשיים (ציון תקני ≤ 7)</div>
+      <div class="card-body">
+        {% if r.weaknesses %}
+          {% for w in r.weaknesses %}
+            <span class="badge bg-danger me-1 mb-1 fs-6">{{ w.name }} ({{ w.scaled }})</span>
+          {% endfor %}
+        {% else %}
+          <span class="text-muted">לא נמצאו קשיים יחסיים</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── interpretation ── #}
+{% if r.interpretation %}
+<h5 class="fw-bold mb-3" style="color:#2c5f8a;">פרשנות</h5>
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    {% for key in ['fsiq','vci','pri','wmi','psi','discrepancies','strengths','weaknesses'] %}
+      {% set txt = r.interpretation.get(key) %}
+      {% if txt %}
+        <p class="mb-2">{{ txt }}</p>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ── export buttons ── #}
+<div class="d-flex gap-3 flex-wrap mt-2 mb-5">
+  <a href="/export/word" class="btn btn-primary btn-lg px-5">
+    ⬇ הורד דוח Word
+  </a>
+  <a href="/export/pdf" class="btn btn-danger btn-lg px-5">
+    ⬇ הורד דוח PDF
+  </a>
+  <a href="/" class="btn btn-outline-secondary btn-lg">
+    בדיקה חדשה
+  </a>
+</div>
+
+{% endblock %}

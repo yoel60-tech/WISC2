@@ -1,0 +1,23 @@
+/* ── global ── */
+body { background: #f7f9fc; }
+
+.wisc-table thead th { white-space: nowrap; }
+.wisc-table td, .wisc-table th { vertical-align: middle; }
+.sub-detail { font-size: 0.82rem; white-space: nowrap; }
+
+/* ── qualitative badge colours ── */
+.qual-badge { font-size: 0.8rem; }
+
+.q-very-high  { background: #0a6640; color: #fff; }
+.q-high       { background: #198754; color: #fff; }
+.q-above-avg  { background: #5cb85c; color: #fff; }
+.q-average    { background: #6c757d; color: #fff; }
+.q-below-avg  { background: #fd7e14; color: #fff; }
+.q-low        { background: #dc3545; color: #fff; }
+.q-very-low   { background: #6f0000; color: #fff; }
+
+/* ── print ── */
+@media print {
+  .navbar, .btn, .alert { display: none !important; }
+  .card { border: none !important; box-shadow: none !important; }
+}

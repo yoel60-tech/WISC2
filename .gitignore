@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+reports/*.docx
+reports/*.pdf
+reports/.last_results.json

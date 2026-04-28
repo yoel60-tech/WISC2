@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}WISC-IV — הזנת נתונים{% endblock %}
+
+{% block content %}
+<h4 class="mb-4 fw-bold" style="color:#2c5f8a;">אבחון WISC-IV</h4>
+
+{% if error %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+  {{ error }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Step 1 -->
+<div class="card mb-4 shadow-sm">
+  <div class="card-header text-white fw-bold" style="background:#2c5f8a;">
+    שלב א׳ — שלח את כרטיס הנבדק לבינה המלאכותית
+  </div>
+  <div class="card-body">
+    <p class="text-muted mb-3">
+      צלם/י את כרטיס הנבדק → פתח/י Claude או ChatGPT → הדבק/י את הפרומפט וצרף/י את התמונה:
+    </p>
+    <div class="position-relative">
+      <pre id="prompt-box"
+           class="bg-light border rounded p-3 mb-0"
+           style="white-space:pre-wrap;font-size:0.78rem;direction:ltr;text-align:left;max-height:280px;overflow:auto;">{{ prompt }}</pre>
+      <button class="btn btn-sm btn-primary position-absolute"
+              style="top:8px;left:8px;"
+              onclick="copyPrompt(this)">
+        העתק פרומפט
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 2 -->
+<div class="card shadow-sm">
+  <div class="card-header text-white fw-bold" style="background:#198754;">
+    שלב ב׳ — הדבק את פלט הבינה וחשב
+  </div>
+  <div class="card-body">
+    <p class="text-muted mb-3">
+      העתק/י את ה-JSON שהבינה פלטה והדבק/י אותו כאן:
+    </p>
+    <form method="POST" action="/calculate" id="main-form">
+      <div class="mb-3">
+        <textarea
+          id="json_data"
+          name="json_data"
+          class="form-control font-monospace"
+          rows="16"
+          dir="ltr"
+          style="font-size:0.82rem;resize:vertical;"
+          placeholder='{ "child": { ... }, "raw_scores": { ... } }'
+        ></textarea>
+        <div id="json-err" class="text-danger mt-1" style="display:none;"></div>
+      </div>
+      <button type="submit" class="btn btn-success btn-lg px-5">
+        חשב תוצאות →
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyPrompt(btn) {
+  const text = document.getElementById('prompt-box').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ הועתק!';
+    btn.classList.replace('btn-primary', 'btn-success');
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.classList.replace('btn-success', 'btn-primary');
+    }, 2500);
+  });
+}
+
+document.getElementById('main-form').addEventListener('submit', function(e) {
+  const txt = document.getElementById('json_data').value.trim();
+  const err = document.getElementById('json-err');
+  if (!txt) {
+    e.preventDefault();
+    err.style.display = 'block';
+    err.textContent   = 'אנא הדבק את פלט ה-JSON לפני השליחה';
+    return;
+  }
+  try {
+    JSON.parse(txt);
+    err.style.display = 'none';
+  } catch(ex) {
+    e.preventDefault();
+    err.style.display = 'block';
+    err.textContent   = 'JSON לא תקין: ' + ex.message;
+  }
+});
+</script>
+{% endblock %}

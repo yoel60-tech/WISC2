@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: Arial, "Arial Hebrew", sans-serif;
+    font-size: 10.5pt;
+    direction: rtl;
+    color: #1a1a1a;
+    line-height: 1.5;
+  }
+  @page { margin: 2cm; size: A4; }
+  h1 { font-size:16pt; color:#2c5f8a; margin-bottom:6px; }
+  h2 { font-size:12pt; color:#2c5f8a; margin:16px 0 6px; border-bottom:1px solid #cdd; padding-bottom:3px; }
+  .info-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px 12px; margin-bottom:12px; }
+  .info-item { font-size:9.5pt; }
+  .info-item span { color:#555; }
+  table { width:100%; border-collapse:collapse; margin-bottom:12px; font-size:9.5pt; }
+  th { background:#2c5f8a; color:#fff; padding:5px 7px; text-align:right; font-weight:bold; }
+  td { border:1px solid #ccc; padding:4px 7px; text-align:right; }
+  tr:nth-child(even) td { background:#f4f7fa; }
+  .fsiq-row td { background:#dce8f5 !important; font-weight:bold; }
+  .sig-row td { background:#fff8dc !important; }
+  .supp-row td { color:#666; font-size:9pt; }
+  .sep-row td { background:#eee; color:#888; font-size:8.5pt; text-align:center; }
+  .interp p { margin-bottom:7px; text-align:justify; }
+  .sw-box { display:inline-block; border:1px solid #ccc; border-radius:4px; padding:6px 10px; margin-left:12px; min-width:45%; vertical-align:top; }
+  .sw-box.strength { border-color:#198754; }
+  .sw-box.weakness { border-color:#dc3545; }
+  .sw-title { font-weight:bold; font-size:9.5pt; margin-bottom:4px; }
+  .sw-title.s { color:#198754; }
+  .sw-title.w { color:#dc3545; }
+  .badge { display:inline-block; padding:1px 6px; border-radius:4px; font-size:9pt; margin:2px; }
+  .badge-s { background:#d4edda; color:#155724; }
+  .badge-w { background:#f8d7da; color:#721c24; }
+</style>
+</head>
+<body>
+
+<h1>דוח אבחון WISC-IV</h1>
+
+{% set c = results.child %}
+<div class="info-grid">
+  <div class="info-item"><span>שם: </span>{{ c.name or '—' }}</div>
+  <div class="info-item"><span>גיל בבדיקה: </span>{{ c.age_str or '—' }}</div>
+  <div class="info-item"><span>תאריך בדיקה: </span>{{ c.exam_date or '—' }}</div>
+  <div class="info-item"><span>תאריך לידה: </span>{{ c.dob or '—' }}</div>
+  <div class="info-item"><span>בוחן: </span>{{ c.examiner or '—' }}</div>
+  <div class="info-item"><span>מסגרת: </span>{{ c.school or '—' }}</div>
+  {% if c.grade %}<div class="info-item"><span>כיתה: </span>{{ c.grade }}</div>{% endif %}
+  {% if c.reason %}<div class="info-item" style="grid-column:span 2"><span>סיבת הפניה: </span>{{ c.reason }}</div>{% endif %}
+</div>
+
+<!-- Subtest table -->
+<h2>ציוני מבחנים</h2>
+<table>
+  <thead>
+    <tr><th>מבחן</th><th>ציון גולמי</th><th>תת-ציונים</th><th>ציון תקני</th><th>תיאור</th></tr>
+  </thead>
+  <tbody>
+    {% for code in ['BD','SI','DS','PCn','CD','VC','LN','MR','CO','SS'] %}
+      {% set e = results.subtests.get(code) %}
+      {% if e %}
+      <tr>
+        <td><strong>{{ e.name }}</strong></td>
+        <td style="text-align:center">{{ e.raw if e.raw is not none else '—' }}</td>
+        <td>
+          {% if e.sub_a is defined and e.sub_a is not none %}
+            {{ e.label_a }}: {{ e.sub_a }} | {{ e.label_b }}: {{ e.sub_b }}
+            | הפרש: {% if e.sub_diff > 0 %}+{% endif %}{{ e.sub_diff }}
+          {% else %}—{% endif %}
+        </td>
+        <td style="text-align:center"><strong>{{ e.scaled if e.scaled is not none else '—' }}</strong></td>
+        <td>{{ e.qualitative if e.qualitative is defined else '—' }}</td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+    <tr class="sep-row"><td colspan="5">מבחנים משלימים</td></tr>
+    {% for code in ['PCm','CA','IN','AR','WR'] %}
+      {% set e = results.subtests.get(code) %}
+      {% if e %}
+      <tr class="supp-row">
+        <td>{{ e.name }}</td>
+        <td style="text-align:center">{{ e.raw if e.raw is not none else '—' }}</td>
+        <td>
+          {% if e.sub_a is defined and e.sub_a is not none %}
+            {{ e.label_a }}: {{ e.sub_a }} | {{ e.label_b }}: {{ e.sub_b }}
+            | הפרש: {% if e.sub_diff > 0 %}+{% endif %}{{ e.sub_diff }}
+          {% else %}—{% endif %}
+        </td>
+        <td style="text-align:center">{{ e.scaled if e.scaled is not none else '—' }}</td>
+        <td>{{ e.qualitative if e.qualitative is defined else '—' }}</td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Composite table -->
+<h2>מדדים מורכבים</h2>
+<table>
+  <thead>
+    <tr><th>מדד</th><th>סכום</th><th>ציון מורכב</th><th>אחוזון</th><th>ר"ב 90%</th><th>ר"ב 95%</th><th>תיאור</th></tr>
+  </thead>
+  <tbody>
+    {% for idx in ['VCI','PRI','WMI','PSI','FSIQ'] %}
+      {% set comp = results.composites.get(idx, {}) %}
+      <tr {% if idx == 'FSIQ' %}class="fsiq-row"{% endif %}>
+        <td><strong>{{ comp.name or idx }}</strong></td>
+        <td style="text-align:center">{{ comp.sum if comp.sum is not none else '—' }}</td>
+        {% if comp.score is defined and comp.score is not none %}
+          <td style="text-align:center"><strong>{{ comp.score }}</strong></td>
+          <td style="text-align:center">{{ comp.percentile or '—' }}</td>
+          <td style="text-align:center">{{ comp.ci90_lo or '—' }}–{{ comp.ci90_hi or '—' }}</td>
+          <td style="text-align:center">{{ comp.ci95_lo or '—' }}–{{ comp.ci95_hi or '—' }}</td>
+          <td>{{ comp.qualitative or '—' }}</td>
+        {% else %}
+          <td colspan="5" style="color:#888">{{ comp.error or 'נורמות חסרות' }}</td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Discrepancies -->
+{% if results.discrepancies %}
+<h2>הפרשים בין מדדים</h2>
+<table>
+  <thead>
+    <tr><th>מדד א׳</th><th>ציון</th><th>מדד ב׳</th><th>ציון</th><th>הפרש</th><th>משמעותי?</th></tr>
+  </thead>
+  <tbody>
+    {% for d in results.discrepancies %}
+    <tr {% if d.significant %}class="sig-row"{% endif %}>
+      <td>{{ d.name_a }}</td><td style="text-align:center">{{ d.score_a }}</td>
+      <td>{{ d.name_b }}</td><td style="text-align:center">{{ d.score_b }}</td>
+      <td style="text-align:center"><strong>{{ d.abs_diff }}</strong></td>
+      <td style="text-align:center">{% if d.significant %}כן ✓{% else %}לא{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<!-- Strengths & Weaknesses -->
+{% if results.strengths or results.weaknesses %}
+<h2>חוזקות וחולשות יחסיות</h2>
+<div style="margin-bottom:12px">
+  <div class="sw-box strength">
+    <div class="sw-title s">חוזקות (ציון תקני ≥ 13)</div>
+    {% if results.strengths %}
+      {% for s in results.strengths %}<span class="badge badge-s">{{ s.name }} ({{ s.scaled }})</span>{% endfor %}
+    {% else %}<span style="color:#888">לא נמצאו</span>{% endif %}
+  </div>
+  <div class="sw-box weakness">
+    <div class="sw-title w">קשיים (ציון תקני ≤ 7)</div>
+    {% if results.weaknesses %}
+      {% for w in results.weaknesses %}<span class="badge badge-w">{{ w.name }} ({{ w.scaled }})</span>{% endfor %}
+    {% else %}<span style="color:#888">לא נמצאו</span>{% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Interpretation -->
+{% if results.interpretation %}
+<h2>פרשנות</h2>
+<div class="interp">
+  {% for key in ['fsiq','vci','pri','wmi','psi','discrepancies','strengths','weaknesses'] %}
+    {% set txt = results.interpretation.get(key) %}
+    {% if txt %}<p>{{ txt }}</p>{% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+</body>
+</html>
